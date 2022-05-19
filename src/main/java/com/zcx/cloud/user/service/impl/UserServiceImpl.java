@@ -87,8 +87,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 		User userDB = this.getUserByUsername(user.getUsername());
 		if(Objects.isNull(userDB))
 			throw new UnknownAccountException();
-		//2.角色检测
+
+		// zhanghy
+		// 缺陷，每次登录需要拉取用户的角色，用户角色这东西很长时间变一次，直接缓存到redis当中
+		// 可以看一下JWT的设计思维，仿照的搞一下
+
+		//2.角色检测     开发人员和测试人员不允许登录，类似搞了一个白名单
 		List<Role> roles = roleService.getRolesByUserId(userDB.getUserId());
+		//  点睛之笔，可以看一下携程的applo配置中心
 		List<String> backRoleCodes = properties.getBackRoles();
 		List<String> roleCodes = new ArrayList<String>();
 		roles.forEach(role -> {
@@ -103,6 +109,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 		user.setPassword(md5Password);
 		
 		//4.单用户登录，检测用户是否已经登录
+		// BUG 这块代码有问题
+		// 仔细研究下
 		boolean logined = shiroHelper.checkLogined(user.getUsername());
 		if(logined)
 			throw new UserLoginedException("此用户已登录");
